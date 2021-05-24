@@ -24,7 +24,9 @@ func Provider() *schema.Provider {
 				DefaultFunc: schema.EnvDefaultFunc("HASHICUPS_PASSWORD", nil),
 			},
 		},
-		ResourcesMap: map[string]*schema.Resource{},
+		ResourcesMap: map[string]*schema.Resource{
+			"hashicups_order": resourceOrder(),
+		},
 		DataSourcesMap: map[string]*schema.Resource{
 			"hashicups_coffees": dataSourceCoffees(),
 			"hashicups_order":   dataSourceOrder(),
@@ -40,10 +42,22 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
 
+	// diags = append(diags, diag.Diagnostic{
+	// 	Severity: diag.Warning,
+	// 	Summary:  "Warning Message Summary",
+	// 	Detail:   "This is the detailed warning message from providerConfigure",
+	// })
+
 	if (username != "") && (password != "") {
 		c, err := hashicups.NewClient(nil, &username, &password)
 		if err != nil {
-			return nil, diag.FromErr(err)
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Unable to create HashiCups client",
+				Detail:   "Unable to auth user for authenticated HashiCups client",
+			})
+
+			return nil, diags
 		}
 
 		return c, diags
@@ -51,7 +65,13 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}
 
 	c, err := hashicups.NewClient(nil, nil, nil)
 	if err != nil {
-		return nil, diag.FromErr(err)
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Unable to create HashiCups client",
+			Detail:   "Unable to auth user for authenticated HashiCups client",
+		})
+
+		return nil, diags
 	}
 
 	return c, diags
