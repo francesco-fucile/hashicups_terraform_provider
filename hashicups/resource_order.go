@@ -16,6 +16,9 @@ func resourceOrder() *schema.Resource {
 		ReadContext:   resourceOrderRead,
 		UpdateContext: resourceOrderUpdate,
 		DeleteContext: resourceOrderDelete,
+		Importer: &schema.ResourceImporter{
+			StateContext: schema.ImportStatePassthroughContext,
+		},
 		Schema: map[string]*schema.Schema{
 			"last_updated": &schema.Schema{
 				Type:     schema.TypeString,
@@ -165,8 +168,21 @@ func resourceOrderUpdate(ctx context.Context, d *schema.ResourceData, m interfac
 }
 
 func resourceOrderDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	c := m.(*hc.Client)
+
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
+
+	orderID := d.Id()
+
+	err := c.DeleteOrder(orderID)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	// d.SetId("") is automatically called assuming delete returns no errors, but
+	// it is added here for explicitness.
+	d.SetId("")
 
 	return diags
 }
